@@ -7,7 +7,9 @@ Built with **Streamlit**, **Azure OpenAI** (function calling), and the public **
 ## Quick Start
 
 ```bash
-# 1. Install
+# 1. Create a virtual environment & install
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
 
 # 2. Configure Azure OpenAI
@@ -44,7 +46,7 @@ graph LR
     User([👤 User])
     UI[Streamlit Chat UI<br/><i>app.py</i>]
     Chat[Chat Orchestrator<br/><i>retschat/chat.py</i>]
-    AO[Azure OpenAI<br/><i>GPT-4o + function calling</i>]
+    AO[Azure OpenAI<br/><i>function calling</i>]
     Exec[Tool Executor<br/><i>retschat/tool_executor.py</i>]
     API[API Client<br/><i>retschat/api_client.py</i>]
     Rets[(Retsinformation API<br/>retsinformation-api.dk/v1)]
@@ -129,21 +131,24 @@ retschat/
 
 Copy `.env.example` to `.env` and set:
 
-| Variable                   | Description                    | Default              |
-| -------------------------- | ------------------------------ | -------------------- |
-| `AZURE_OPENAI_ENDPOINT`    | Your Azure OpenAI resource URL | _(required)_         |
-| `AZURE_OPENAI_API_KEY`     | API key                        | _(required)_         |
-| `AZURE_OPENAI_DEPLOYMENT`  | Deployment/model name          | `gpt-4o`             |
-| `AZURE_OPENAI_API_VERSION` | API version                    | `2024-12-01-preview` |
+| Variable                   | Description                                                           | Default              |
+| -------------------------- | --------------------------------------------------------------------- | -------------------- |
+| `AZURE_OPENAI_ENDPOINT`    | Your Azure OpenAI resource URL (e.g. `https://xxx.openai.azure.com/`) | _(required)_         |
+| `AZURE_OPENAI_API_KEY`     | API key                                                               | _(required)_         |
+| `AZURE_OPENAI_DEPLOYMENT`  | Deployment/model name                                                 | `gpt-5.2-chat`       |
+| `AZURE_OPENAI_API_VERSION` | API version                                                           | `2024-12-01-preview` |
+
+> **Note:** The endpoint should be just the resource URL (e.g. `https://your-resource.openai.azure.com/`), _not_ including `/openai/v1/` — the SDK appends the correct path automatically.
 
 Optional tuning (set in `.env` or leave defaults):
 
 | Variable                  | Description                        | Default |
 | ------------------------- | ---------------------------------- | ------- |
-| `TEMPERATURE`             | LLM temperature (0–1)              | `0.3`   |
-| `MAX_TOKENS`              | Max response tokens                | `4096`  |
+| `MAX_TOKENS`              | Max completion tokens per response | `4096`  |
 | `MAX_TOOL_ROUNDS`         | Max sequential tool calls per turn | `6`     |
 | `MAX_TOOL_RESPONSE_CHARS` | Truncation limit for tool results  | `12000` |
+
+> **Note:** Some models (e.g. `gpt-5.2-chat`) do not support custom `temperature` values. The setting exists in the config but is not sent to models that reject it.
 
 ## API Coverage
 
