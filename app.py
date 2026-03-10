@@ -169,8 +169,17 @@ for msg in st.session_state.messages:
 # Handle new user input
 # ---------------------------------------------------------------------------
 
+# If the last message is from the user (e.g. from an example button), answer it
+needs_reply = (
+    st.session_state.messages
+    and st.session_state.messages[-1]["role"] == "user"
+)
+
 if prompt := st.chat_input("Stil et spørgsmål om dansk lovgivning..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
+    needs_reply = True
+
+if needs_reply:
     run_chat()

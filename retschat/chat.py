@@ -87,8 +87,7 @@ class ChatOrchestrator:
                 messages=full_messages,
                 tools=TOOLS,  # type: ignore[arg-type]
                 tool_choice="auto",
-                temperature=self.settings.temperature,
-                max_tokens=self.settings.max_tokens,
+                max_completion_tokens=self.settings.max_tokens,
                 stream=True,
             )
 
