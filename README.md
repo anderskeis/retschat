@@ -1,5 +1,12 @@
 # ⚖️ RetsChat
 
+> [!WARNING]
+> **⚠️ VERY EARLY ALPHA — NOT FOR PUBLIC DEPLOYMENT**
+>
+> This project is in **very early alpha**. Expect bugs, incomplete features, and breaking changes without notice.
+>
+> **This application is intended for local / LAN use only.** It has no authentication, no rate limiting, and no access controls. Do **not** expose it to the public internet — doing so would leak your Azure OpenAI API key and allow anyone to query the service at your cost.
+
 A conversational AI interface for Danish legislation. Ask questions about laws, bills, and parliamentary proceedings in natural language — RetsChat looks up real-time data from [retsinformation.dk](https://retsinformation-api.dk) and answers with proper legal references.
 
 Built with **Streamlit**, **Azure OpenAI** (function calling), and the public **Retsinformation API**.
