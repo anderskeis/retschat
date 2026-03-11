@@ -29,6 +29,21 @@ streamlit run app.py
 
 The app opens at `http://localhost:8501`. Type a question or click one of the example prompts in the sidebar.
 
+### Docker
+
+```bash
+# 1. Configure
+cp .env.example .env
+# Edit .env with your Azure OpenAI credentials
+
+# 2. Build & run
+docker compose up --build
+```
+
+The app will be available at `http://localhost:8501`. Stop with `Ctrl+C` or `docker compose down`.
+
+For **development** with hot-reload, uncomment the `volumes` section in `docker-compose.yml`.
+
 ## What Can It Do?
 
 | Capability                                    | Example question                                             |
@@ -117,7 +132,11 @@ The LLM can chain up to **6 sequential tool calls** per turn (configurable via `
 retschat/
 ├── app.py                    # Streamlit entrypoint — chat UI, sidebar, session state
 ├── pyproject.toml            # Dependencies & project metadata
+├── Dockerfile                # Multi-stage Docker build
+├── docker-compose.yml        # One-command bring-up with env injection
 ├── .env.example              # Template for Azure OpenAI credentials
+├── .streamlit/
+│   └── config.toml           # Streamlit UI settings (minimal toolbar)
 └── retschat/
     ├── config.py             # Pydantic settings loaded from .env
     ├── api_client.py         # HTTP client wrapping all Retsinformation API endpoints

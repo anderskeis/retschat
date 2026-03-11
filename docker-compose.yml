@@ -1,0 +1,13 @@
+services:
+  retschat:
+    build: .
+    container_name: retschat
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    restart: unless-stopped
+    # Uncomment for development — mounts source for hot-reload:
+    # volumes:
+    #   - ./retschat:/app/retschat:ro
+    #   - ./app.py:/app/app.py:ro
