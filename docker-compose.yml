@@ -1,7 +1,7 @@
 services:
-  retschat:
+  dk-law-ai:
     build: .
-    container_name: retschat
+    container_name: dk-law-ai
     ports:
       - "8501:8501"
     env_file:

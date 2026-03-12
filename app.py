@@ -1,4 +1,4 @@
-"""RetsChat – Streamlit chat interface for Danish law."""
+"""DK-Law-AI – Streamlit chat interface for Danish law."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from retschat.tool_executor import ToolExecutor
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="RetsChat – Dansk lovgivning",
+    page_title="DK-Law-AI – Dansk lovgivning",
     page_icon="⚖️",
     layout="centered",
 )
@@ -69,38 +69,41 @@ def run_chat() -> None:
     orchestrator = get_orchestrator()
 
     # Build message list for the API (only user/assistant, no tool messages)
+    # Prune history to keep only the last N messages to avoid exceeding context limits
+    MAX_HISTORY = 20
+    recent_messages = st.session_state.messages[-MAX_HISTORY:]
+    
     api_messages = [
         {"role": m["role"], "content": m["content"]}
-        for m in st.session_state.messages
+        for m in recent_messages
     ]
 
     with st.chat_message("assistant", avatar="⚖️"):
         status_container = st.empty()
-        content_container = st.empty()
-        accumulated_content = ""
+        
+        def stream_generator():
+            for event in orchestrator.chat(api_messages):
+                if event["type"] == "tool_call":
+                    tool_name = event["name"]
+                    status_container.status(
+                        f"🔍 Kalder **{_tool_display_name(tool_name)}**...",
+                        state="running",
+                    )
+                elif event["type"] == "tool_result":
+                    status_container.status(
+                        f"✅ **{_tool_display_name(event['name'])}** færdig",
+                        state="complete",
+                    )
+                elif event["type"] == "content_delta":
+                    yield event["content"]
+                elif event["type"] == "content_done":
+                    status_container.empty()
+                    # Also yield the final chunk if there was any left (though content_done usually contains the full accumulated string, we only yielded deltas.
+                    # Wait, our orchestrator's 'content_done' might contain the full content, but we don't want to yield the full string again.
+                    pass
 
-        for event in orchestrator.chat(api_messages):
-            if event["type"] == "tool_call":
-                tool_name = event["name"]
-                status_container.status(
-                    f"🔍 Kalder **{_tool_display_name(tool_name)}**...",
-                    state="running",
-                )
-
-            elif event["type"] == "tool_result":
-                status_container.status(
-                    f"✅ **{_tool_display_name(event['name'])}** færdig",
-                    state="complete",
-                )
-
-            elif event["type"] == "content_delta":
-                accumulated_content += event["content"]
-                content_container.markdown(accumulated_content + "▌")
-
-            elif event["type"] == "content_done":
-                accumulated_content = event["content"]
-                status_container.empty()
-                content_container.markdown(accumulated_content)
+        # st.write_stream returns the full accumulated string
+        accumulated_content = st.write_stream(stream_generator())
 
     if accumulated_content:
         st.session_state.messages.append(
@@ -120,7 +123,7 @@ if "messages" not in st.session_state:
 # ---------------------------------------------------------------------------
 
 with st.sidebar:
-    st.title("⚖️ RetsChat")
+    st.title("⚖️ DK-Law-AI")
     st.caption(
         "Chat med dansk lovgivning via "
         "[retsinformation-api.dk](https://retsinformation-api.dk)"
@@ -149,8 +152,10 @@ with st.sidebar:
         st.rerun()
 
     st.caption(
-        "RetsChat er ikke juridisk rådgivning. "
-        "Verificér altid oplysninger mod den officielle lovtekst på retsinformation.dk."
+        "⚠️ **Disclaimer:** DK-Law-AI er ikke juridisk rådgivning. "
+        "Svar kan indeholde fejl eller være ufuldstændige. "
+        "Stol på, men verificér altid oplysninger mod den officielle lovtekst på "
+        "[retsinformation.dk](https://www.retsinformation.dk)."
     )
 
 # ---------------------------------------------------------------------------

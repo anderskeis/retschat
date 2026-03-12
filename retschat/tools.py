@@ -66,16 +66,21 @@ TOOLS: list[dict] = [
                     "number": {"type": "integer", "description": "The law's number (e.g. 468)."},
                     "version": {
                         "type": "string",
-                        "enum": ["original", "latest", "at_date"],
+                        "enum": ["original", "latest", "at_date", "specific"],
                         "description": (
                             "'original' = base law (version 1), "
                             "'latest' = most recent with all amendments, "
-                            "'at_date' = law as it was on target_date."
+                            "'at_date' = law as it was on target_date, "
+                            "'specific' = a specific version number."
                         ),
                     },
                     "target_date": {
                         "type": "string",
                         "description": "Date in YYYY-MM-DD format (only used when version='at_date').",
+                    },
+                    "version_number": {
+                        "type": "integer",
+                        "description": "The specific version number (only used when version='specific').",
                     },
                     "paragraphs": {
                         "type": "string",
@@ -291,6 +296,14 @@ TOOLS: list[dict] = [
                         "type": "boolean",
                         "description": "If true, also fetch the text content (resume, decision text, etc.).",
                     },
+                    "include_keywords": {
+                        "type": "boolean",
+                        "description": "If true, also fetch the keywords for the bill.",
+                    },
+                    "include_enacted_law": {
+                        "type": "boolean",
+                        "description": "If true, also fetch the enacted law details (if the bill passed).",
+                    },
                 },
                 "required": ["number"],
             },
@@ -391,6 +404,82 @@ TOOLS: list[dict] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_case_details",
+            "description": (
+                "Get full details about a parliamentary case by its FT ID. Includes metadata, and optionally text content and keywords."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ft_id": {"type": "integer", "description": "The case's FT ODA API ID."},
+                    "include_text": {
+                        "type": "boolean",
+                        "description": "If true, also fetch the text content.",
+                    },
+                    "include_keywords": {
+                        "type": "boolean",
+                        "description": "If true, also fetch the keywords for the case.",
+                    },
+                },
+                "required": ["ft_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_case_lifecycle",
+            "description": (
+                "Get the legislative process steps for a parliamentary case by its FT ID."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ft_id": {"type": "integer", "description": "The case's FT ODA API ID."},
+                },
+                "required": ["ft_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_case_actors",
+            "description": (
+                "Get actors involved in a specific parliamentary case by its FT ID."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ft_id": {"type": "integer", "description": "The case's FT ODA API ID."},
+                },
+                "required": ["ft_id"],
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_case_documents",
+            "description": (
+                "Get documents related to a parliamentary case by its FT ID."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ft_id": {"type": "integer", "description": "The case's FT ODA API ID."},
+                    "document_type": {
+                        "type": "string",
+                        "description": "Filter by document type.",
+                    },
+                },
+                "required": ["ft_id"],
+            },
+        },
+    },
     # ------------------------------------------------------------------
     # Actors
     # ------------------------------------------------------------------
@@ -424,7 +513,7 @@ TOOLS: list[dict] = [
             "name": "get_actor_details",
             "description": (
                 "Get details about a specific actor by their FT ID, including biography, "
-                "party affiliation, and their committee/party memberships."
+                "party affiliation, and optionally their committee/party memberships or relationships."
             ),
             "parameters": {
                 "type": "object",
@@ -433,6 +522,10 @@ TOOLS: list[dict] = [
                     "include_memberships": {
                         "type": "boolean",
                         "description": "If true, also fetch party and committee memberships.",
+                    },
+                    "include_relationships": {
+                        "type": "boolean",
+                        "description": "If true, also fetch relationships (e.g., historical positions).",
                     },
                 },
                 "required": ["ft_id"],

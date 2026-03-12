@@ -71,6 +71,7 @@ class ToolExecutor:
         number: int,
         version: str = "latest",
         target_date: str | None = None,
+        version_number: int | None = None,
         paragraphs: str | None = None,
         exclude: str | None = None,
     ) -> Any:
@@ -80,6 +81,10 @@ class ToolExecutor:
         if version == "at_date" and target_date:
             return self.client.get_law_at_date_markdown(
                 year, number, target_date, **md_kwargs
+            )
+        if version == "specific" and version_number is not None:
+            return self.client.get_law_version_markdown(
+                year, number, version_number, **md_kwargs
             )
         # default: latest
         return self.client.get_latest_law_markdown(year, number, **md_kwargs)
@@ -125,12 +130,27 @@ class ToolExecutor:
         return self.client.search_bills(**kwargs)
 
     def _handle_get_bill_details(
-        self, number: str, include_text: bool = False
+        self, number: str, include_text: bool = False, include_keywords: bool = False, include_enacted_law: bool = False
     ) -> Any:
         bill = self.client.get_bill(number)
         if include_text:
-            text = self.client.get_bill_text(number)
-            bill["_text_content"] = text
+            try:
+                text = self.client.get_bill_text(number)
+                bill["_text_content"] = text
+            except Exception:
+                pass
+        if include_keywords:
+            try:
+                keywords = self.client.get_bill_keywords(number)
+                bill["_keywords"] = keywords
+            except Exception:
+                pass
+        if include_enacted_law:
+            try:
+                enacted = self.client.get_enacted_law(number)
+                bill["_enacted_law"] = enacted
+            except Exception:
+                pass
         return bill
 
     def _handle_get_bill_lifecycle(self, number: str) -> Any:
@@ -144,12 +164,42 @@ class ToolExecutor:
     ) -> Any:
         return self.client.get_bill_documents(number, document_type=document_type)
 
+    def _handle_get_bill_document_files(self, number: str, doc_ft_id: int) -> Any:
+        return self.client.get_bill_document_files(number, doc_ft_id)
+
     # ------------------------------------------------------------------
     # Case handlers
     # ------------------------------------------------------------------
 
     def _handle_search_cases(self, **kwargs: Any) -> Any:
         return self.client.search_cases(**kwargs)
+
+    def _handle_get_case_details(self, ft_id: int, include_text: bool = False, include_keywords: bool = False) -> Any:
+        case = self.client.get_case(ft_id)
+        if include_text:
+            try:
+                text = self.client.get_case_text(ft_id)
+                case["_text_content"] = text
+            except Exception:
+                pass
+        if include_keywords:
+            try:
+                keywords = self.client.get_case_keywords(ft_id)
+                case["_keywords"] = keywords
+            except Exception:
+                pass
+        return case
+
+    def _handle_get_case_lifecycle(self, ft_id: int) -> Any:
+        return self.client.get_case_steps(ft_id)
+
+    def _handle_get_case_actors(self, ft_id: int) -> Any:
+        return self.client.get_case_actors(ft_id)
+
+    def _handle_get_case_documents(
+        self, ft_id: int, document_type: str | None = None
+    ) -> Any:
+        return self.client.get_case_documents(ft_id, document_type=document_type)
 
     # ------------------------------------------------------------------
     # Actor handlers
@@ -159,12 +209,21 @@ class ToolExecutor:
         return self.client.search_actors(**kwargs)
 
     def _handle_get_actor_details(
-        self, ft_id: int, include_memberships: bool = False
+        self, ft_id: int, include_memberships: bool = False, include_relationships: bool = False
     ) -> Any:
         actor = self.client.get_actor(ft_id)
         if include_memberships:
-            memberships = self.client.get_actor_memberships(ft_id)
-            actor["_memberships"] = memberships
+            try:
+                memberships = self.client.get_actor_memberships(ft_id)
+                actor["_memberships"] = memberships
+            except Exception:
+                pass
+        if include_relationships:
+            try:
+                relationships = self.client.get_actor_relationships(ft_id)
+                actor["_relationships"] = relationships
+            except Exception:
+                pass
         return actor
 
     # ------------------------------------------------------------------

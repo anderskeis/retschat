@@ -18,7 +18,7 @@ RUN /opt/venv/bin/pip install --no-cache-dir .
 FROM python:3.12-slim
 
 LABEL maintainer="anderskeis"
-LABEL description="RetsChat – Chat interface for Danish law"
+LABEL description="DK-Law-AI – Chat interface for Danish law"
 
 # Create non-root user
 RUN groupadd --gid 1000 app \

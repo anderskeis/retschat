@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from typing import Any
 
+import hishel
+import hishel.httpx
 import httpx
+from pathlib import Path
 
 
 class RetsinformationClient:
@@ -12,7 +15,17 @@ class RetsinformationClient:
 
     def __init__(self, base_url: str = "https://retsinformation-api.dk/v1") -> None:
         self.base_url = base_url.rstrip("/")
-        self._client = httpx.Client(base_url=self.base_url, timeout=30.0)
+        # Use hishel for HTTP caching (SQLite backend for persistence could be added, but in-memory is fine for single run,
+        # or FileStorage for persistence across runs)
+        # Use a writable directory for the cache, especially important in Docker containers
+        cache_dir = Path("/tmp/.cache/hishel")
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        
+        self._client = hishel.httpx.SyncCacheClient(
+            base_url=self.base_url, 
+            timeout=30.0,
+            storage=hishel.SyncSqliteStorage(database_path=str(cache_dir / "hishel_cache.db")), # Use SQLite storage for persistence
+        )
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -252,6 +265,18 @@ class RetsinformationClient:
         """Get the enacted law for a bill (if it passed)."""
         return self._get(f"/lovgivning/bills/{number}/enacted-law")
 
+    def get_bill_step_actors(self, number: str, step_ft_id: int) -> Any:
+        """Get actors involved in a specific step of a bill."""
+        return self._get(f"/lovgivning/bills/{number}/steps/{step_ft_id}/actors")
+
+    def get_bill_step_documents(self, number: str, step_ft_id: int) -> Any:
+        """Get documents related to a specific step of a bill."""
+        return self._get(f"/lovgivning/bills/{number}/steps/{step_ft_id}/documents")
+
+    def get_bill_document_files(self, number: str, doc_ft_id: int) -> Any:
+        """Get actual files for a specific document related to a bill."""
+        return self._get(f"/lovgivning/bills/{number}/documents/{doc_ft_id}/files")
+
     # ------------------------------------------------------------------
     # Cases
     # ------------------------------------------------------------------
@@ -314,6 +339,14 @@ class RetsinformationClient:
     def get_case_text(self, ft_id: int) -> Any:
         """Get all text content from a case."""
         return self._get(f"/lovgivning/cases/{ft_id}/text")
+
+    def get_case_step_actors(self, ft_id: int, step_ft_id: int) -> Any:
+        """Get actors involved in a specific step of a case."""
+        return self._get(f"/lovgivning/cases/{ft_id}/steps/{step_ft_id}/actors")
+
+    def get_case_step_documents(self, ft_id: int, step_ft_id: int) -> Any:
+        """Get documents related to a specific step of a case."""
+        return self._get(f"/lovgivning/cases/{ft_id}/steps/{step_ft_id}/documents")
 
     # ------------------------------------------------------------------
     # Actors

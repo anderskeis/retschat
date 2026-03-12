@@ -20,7 +20,7 @@ from retschat.tools import TOOLS
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """\
-Du er **RetsChat**, en AI-assistent der hjælper med dansk lovgivning ved hjælp af data fra retsinformation.dk.
+Du er **DK-Law-AI**, en AI-assistent der hjælper med dansk lovgivning ved hjælp af data fra retsinformation.dk.
 
 ## Regler
 - Svar altid på det sprog brugeren skriver (dansk eller engelsk).
@@ -152,22 +152,44 @@ class ChatOrchestrator:
                     })
                 full_messages.append(assistant_msg)
 
-                # Execute each tool call
+                import concurrent.futures
+
+                def _exec_tool(tool_name: str, arguments_str: str) -> str:
+                    try:
+                        arguments = json.loads(arguments_str)
+                    except json.JSONDecodeError:
+                        arguments = {}
+                    return self.tool_executor.execute(tool_name, arguments)
+
+                # Yield tool_call events and start execution
+                futures_map = {}
+                executor = concurrent.futures.ThreadPoolExecutor()
+                
                 for idx in sorted(tool_calls_map.keys()):
                     tc_data = tool_calls_map[idx]
                     tool_name = tc_data["name"]
+                    arguments_str = tc_data["arguments"]
+                    
                     try:
-                        arguments = json.loads(tc_data["arguments"])
+                        arguments_dict = json.loads(arguments_str)
                     except json.JSONDecodeError:
-                        arguments = {}
+                        arguments_dict = {}
 
                     yield {
                         "type": "tool_call",
                         "name": tool_name,
-                        "arguments": arguments,
+                        "arguments": arguments_dict,
                     }
 
-                    result = self.tool_executor.execute(tool_name, arguments)
+                    future = executor.submit(_exec_tool, tool_name, arguments_str)
+                    futures_map[idx] = future
+
+                # Wait for results and yield tool_result events
+                results_map = {}
+                for idx, future in futures_map.items():
+                    tc_data = tool_calls_map[idx]
+                    tool_name = tc_data["name"]
+                    result = future.result()
 
                     yield {
                         "type": "tool_result",
@@ -175,11 +197,17 @@ class ChatOrchestrator:
                         "content": result[:200] + "..." if len(result) > 200 else result,
                     }
 
-                    full_messages.append({
+                    results_map[idx] = {
                         "role": "tool",
                         "tool_call_id": tc_data["id"],
                         "content": result,
-                    })
+                    }
+                
+                executor.shutdown()
+
+                # Append tool results to full_messages in order
+                for idx in sorted(results_map.keys()):
+                    full_messages.append(results_map[idx])
 
                 # Loop back to let the LLM process the tool results
                 continue
@@ -189,7 +217,9 @@ class ChatOrchestrator:
             return
 
         # Max rounds reached
+        error_msg = "Jeg har nået det maksimale antal værktøjskald. Prøv at stille et mere specifikt spørgsmål."
+        yield {"type": "content_delta", "content": error_msg}
         yield {
             "type": "content_done",
-            "content": "Jeg har nået det maksimale antal værktøjskald. Prøv at stille et mere specifikt spørgsmål.",
+            "content": error_msg,
         }
